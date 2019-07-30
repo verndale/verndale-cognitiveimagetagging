@@ -1,0 +1,36 @@
+﻿<?xml version="1.0"?>
+<package >
+  <metadata>
+	<id>$id$</id>
+	<version>$version$</version>
+	<title>$title$</title>
+	<authors>Sandy Foley</authors>
+	<owners>Verndale</owners>
+	<license type="expression">MIT</license>
+	<projectUrl>https://github.com/verndale/verndale-cognitiveimagetagging</projectUrl>
+	<repository type="git" url="https://github.com/verndale/verndale-cognitiveimagetagging.git"/>
+	<requireLicenseAcceptance>false</requireLicenseAcceptance>
+	<iconUrl></iconUrl>
+	<summary>Small library for automatically determining the "alt text" or "tags" for a supplied image using Azure Cognitive Services.</summary>
+	<description>
+This library features two functions:
+
+- Determine the descriptive alt text of an image by using AI to "read" the image.
+- Determine the descriptive text tags (series of words) of an image by using AI to "read" the image.
+
+Requirements
+-
+-
+-
+
+
+Installation
+-
+- 
+- 
+	</description>
+	<releaseNotes>Initial Release</releaseNotes>
+	<copyright>Copyright 2019</copyright>
+	<tags>Images, Alt Text, Cognitive Services, AI</tags>
+  </metadata>
+</package>
