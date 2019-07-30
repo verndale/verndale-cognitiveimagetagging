@@ -5,6 +5,11 @@ VisualStudioVersion = 15.0.28307.757
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verndale.CognitiveImageTagging", "Verndale.CognitiveImageTagging\Verndale.CognitiveImageTagging.csproj", "{5BF2BCA8-E0F7-4934-8FCB-F03774DFE77F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verndale.CognitiveImageTagging.TestConsole", "Verndale.CognitiveImageTagging.TestConsole\Verndale.CognitiveImageTagging.TestConsole.csproj", "{7C38E515-C4FC-4D1B-9823-D06F5DB54632}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5BF2BCA8-E0F7-4934-8FCB-F03774DFE77F} = {5BF2BCA8-E0F7-4934-8FCB-F03774DFE77F}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +20,10 @@ Global
 		{5BF2BCA8-E0F7-4934-8FCB-F03774DFE77F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5BF2BCA8-E0F7-4934-8FCB-F03774DFE77F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5BF2BCA8-E0F7-4934-8FCB-F03774DFE77F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C38E515-C4FC-4D1B-9823-D06F5DB54632}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C38E515-C4FC-4D1B-9823-D06F5DB54632}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C38E515-C4FC-4D1B-9823-D06F5DB54632}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C38E515-C4FC-4D1B-9823-D06F5DB54632}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
