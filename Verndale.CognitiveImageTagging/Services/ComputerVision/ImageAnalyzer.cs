@@ -167,9 +167,9 @@ namespace Verndale.CognitiveImageTagging.Services.ComputerVision
 		/// Client side should further query the read operation status using the URL specified in this header.
 		/// The operation ID will expire in 48 hours.
 		/// </summary>
-		/// <param name="byteData">image byte array</param>
+		/// <param name="imageAsBytes">image byte array</param>
 		/// <returns>response containing url in operation location header</returns>
-		private async Task<HttpResponseMessage> GetOperationLocationHeaderForImage(byte[] byteData)
+		private async Task<HttpResponseMessage> GetOperationLocationHeaderForImage(byte[] imageAsBytes)
 		{
 			HttpResponseMessage opLocationResponse;
 
@@ -180,7 +180,7 @@ namespace Verndale.CognitiveImageTagging.Services.ComputerVision
 			// Assemble the URI for the REST API method.
 			var textInImageUrl = Endpoint + "/recognizeText?" + queryString;
 
-			using (ByteArrayContent content = new ByteArrayContent(byteData))
+			using (ByteArrayContent content = new ByteArrayContent(imageAsBytes))
 			{
 				content.Headers.ContentType =
 					new MediaTypeHeaderValue("application/octet-stream");
