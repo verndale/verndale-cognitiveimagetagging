@@ -40,7 +40,7 @@ namespace Verndale.CognitiveImageTagging.TestConsole
                     System.Console.WriteLine("\nCaptions: ");
                     foreach (var text in metadata.Captions)
                     {
-                        System.Console.WriteLine(text);
+                        System.Console.WriteLine(text.Caption);
                     }
 
                     System.Console.WriteLine("\nTags: " + string.Join(",", metadata.Tags));

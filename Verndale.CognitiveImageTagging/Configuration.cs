@@ -36,8 +36,7 @@ namespace Verndale.CognitiveImageTagging
 		/// <summary>
 		/// The Visual Features parameters to pass to Azure Cognitive Services for evaluation. Available options include:  Description,Color,Tags,Brands,Adult,Faces,ImageType,Objects
 		/// </summary>
-		[ConfigurationProperty("visualFeatures", IsRequired = false
-		, DefaultValue = "Description,Tags")]
+		[ConfigurationProperty("visualFeatures", IsRequired = false, DefaultValue = "Description")]
 		public string VisualFeatures
 		{
 			get => this["visualFeatures"].ToString();
@@ -56,7 +55,7 @@ namespace Verndale.CognitiveImageTagging
 		}
 
 		/// <summary>
-		/// Specifies whether Azure Cognitive Services should detect the orientation of the image (portrait or landscape)
+		/// Specifies whether Azure Cognitive Services should detect the orientation of the image text and correct
 		/// </summary>
 		[ConfigurationProperty("detectOrientation", IsRequired = false
 			, DefaultValue = "true")]

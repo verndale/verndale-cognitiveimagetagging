@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
+﻿using System;
+using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.IO;
@@ -13,16 +14,20 @@ using Verndale.CognitiveImageTagging.Models;
 
 namespace Verndale.CognitiveImageTagging.Services.ComputerVision
 {
-	public class ImageAnalyzer : ComputerVisionBase
+	public class ImageAnalyzer
 	{
 		private readonly double _textInImageConfidenceLevel;
 		private readonly double _captionConfidenceLevel;
 
-		#region ctor
-		/// <summary>
-		/// Instantiate a new image analyzer to retrieve tags and captions for an image.
-		/// </summary>
-		public ImageAnalyzer()
+        private readonly HttpClient _client;
+        private readonly string _subscriptionKey;
+        private readonly string _endpoint;
+
+        #region ctor
+        /// <summary>
+        /// Instantiate a new image analyzer to retrieve tags and captions for an image.
+        /// </summary>
+        public ImageAnalyzer()
 			: this(new HttpClient()) { }
 
 		/// <summary>
@@ -30,11 +35,27 @@ namespace Verndale.CognitiveImageTagging.Services.ComputerVision
 		/// </summary>
 		/// <param name="client">HttpClient</param>
 		public ImageAnalyzer(HttpClient client)
-			: base(client)
 		{
-			_textInImageConfidenceLevel = Configuration.Current.TextInImageConfidenceLevel;
-			_captionConfidenceLevel = Configuration.Current.CaptionConfidenceLevel;
-		}
+            string endpoint = Configuration.Current.CognitiveServicesUri;
+            string subscriptionKey = Configuration.Current.SubscriptionKey;
+
+            if (string.IsNullOrWhiteSpace(endpoint))
+            {
+                throw new ComputerVisionErrorException("CognitiveServicesUri must be defined in configuration.");
+            }
+
+            if (string.IsNullOrWhiteSpace(subscriptionKey))
+            {
+                throw new ComputerVisionErrorException("Subscription must be defined in configuration");
+            }
+
+            _subscriptionKey = subscriptionKey;
+            _endpoint = endpoint;
+            _client = client;
+
+            _textInImageConfidenceLevel = Configuration.Current.TextInImageConfidenceLevel;
+            _captionConfidenceLevel = Configuration.Current.CaptionConfidenceLevel;
+        }
 		#endregion
 
 		/// <summary>
@@ -49,34 +70,63 @@ namespace Verndale.CognitiveImageTagging.Services.ComputerVision
 		/// <param name="checkForTextInImage">If an image has text inside it, it requires two separate calls to Cognitive Services.  If this is set to true, a call will be made to identify shapes in the image.
 		/// A second call is then made to identify the text in the image.  The two values are concatenated together.</param>
 		/// <returns>List of possible captions in order of confidence, descending and a list of possible tags</returns>
-		public async Task<CsImageMetadata> GetAltTextAndTags(Stream imageStream, string language = "en", bool checkForTextInImage = false)
+		public async Task<Result> GetAltTextAndTags(Stream imageStream, string language = "en", bool checkForTextInImage = false)
 		{
-			var altTextList = new List<string>();
+            var captionList = new List<CaptionResult>();
+            var errorList = new List<string>();
 
-			var imageAnalysis = await AnalyzeImage(imageStream, language, checkForTextInImage);
+            var imageAnalysis = await AnalyzeImage(imageStream, language, checkForTextInImage);
 
 			if (imageAnalysis.Description?.Captions == null)
 			{
-				throw new ComputerVisionErrorException("No tags or caption was returned for the image; Description/Caption is not present in the returned object.");
+				errorList.Add("No caption was returned for the image; Description/Caption is not present in the returned object.");
+                return new Result()
+                {
+                    Status = ResultStatus.Fail,
+                    Errors = errorList
+                };
 			}
+
+            if (imageAnalysis.Description?.Tags == null)
+            {
+                errorList.Add("No tags were returned for the image; Description/Tags is not present in the returned object.");
+                return new Result()
+                {
+                    Status = ResultStatus.Fail,
+                    Errors = errorList
+                };
+            }
 
 			var index = 0;
 			foreach (var caption in imageAnalysis.Description.Captions.OrderByDescending(x => x.Confidence))
 			{
 				if (index == 0)
 				{
-					altTextList.Add(caption.Text);
+                    var captionResult = new CaptionResult();
+
+                    if (ImageLikelyContainsText(imageAnalysis))
+                    {
+                        captionResult.IsTextFromImage = true;
+                    }
+
+                    captionResult.Caption = caption.Text;
+
+                    captionList.Add(captionResult);
 					++index;
 					continue;
 				}
 				++index;
-				if (caption.Confidence > _captionConfidenceLevel)
-					altTextList.Add(caption.Text);
-			}
+                if (caption.Confidence > _captionConfidenceLevel)
+                {
+                    var captionResult = new CaptionResult {Caption = caption.Text};
 
-			return new CsImageMetadata
+                    captionList.Add(captionResult);
+                }
+			}
+			return new Result
 			{
-				Captions = altTextList,
+                Status = ResultStatus.Success,
+				Captions = captionList,
 				Tags = imageAnalysis.Description.Tags
 			};
 		}
@@ -103,16 +153,16 @@ namespace Verndale.CognitiveImageTagging.Services.ComputerVision
 		private async Task<ImageAnalysis> AnalyzeImage(Stream imageStream, string language, bool checkForTextInImage)
 		{
 			// Request headers.
-			Client.DefaultRequestHeaders.Add(
-				"Ocp-Apim-Subscription-Key", SubscriptionKey);
+			_client.DefaultRequestHeaders.Add(
+				"Ocp-Apim-Subscription-Key", _subscriptionKey);
 
-			var byteData = GetImageByteData(imageStream);
+			var imageByteArray = GetImageimageByteArray(imageStream);
 
-			var imageAnalysis = await IdentifyImageObjects(byteData, language);
+			var imageAnalysis = await IdentifyImageObjects(imageByteArray, language);
 
 			if (checkForTextInImage && ImageLikelyContainsText(imageAnalysis))
 			{
-				var operationLocationResponse = await GetOperationLocationHeaderForImage(byteData);
+				var operationLocationResponse = await GetOperationLocationHeaderForImage(imageByteArray);
 
 				Thread.Sleep(1000);
 
@@ -139,14 +189,14 @@ namespace Verndale.CognitiveImageTagging.Services.ComputerVision
 
 			if (!result || !headerList.ToList().Any()) return wordList;
 
-			var textResponse = await Client.GetAsync(headerList.First());
+			var textResponse = await _client.GetAsync(headerList.First());
 
 			var textResponseString = await textResponse.Content.ReadAsStringAsync();
 
 			if (string.IsNullOrWhiteSpace(textResponseString))
 			{
-				throw new ComputerVisionErrorException("No words were found in the image.");
-			}
+				return wordList;
+            }
 
 			var json2 = JToken.Parse(textResponseString).ToString();
 
@@ -178,7 +228,7 @@ namespace Verndale.CognitiveImageTagging.Services.ComputerVision
 			queryString["mode"] = Configuration.Current.TextCheckMode;
 
 			// Assemble the URI for the REST API method.
-			var textInImageUrl = Endpoint + "/recognizeText?" + queryString;
+			var textInImageUrl = _endpoint + "/recognizeText?" + queryString;
 
 			using (ByteArrayContent content = new ByteArrayContent(imageAsBytes))
 			{
@@ -186,13 +236,13 @@ namespace Verndale.CognitiveImageTagging.Services.ComputerVision
 					new MediaTypeHeaderValue("application/octet-stream");
 
 				//get Operation-Location header
-				opLocationResponse = await Client.PostAsync(textInImageUrl, content);
+				opLocationResponse = await _client.PostAsync(textInImageUrl, content);
 			}
 
 			return opLocationResponse;
 		}
 
-		private async Task<ImageAnalysis> IdentifyImageObjects(byte[] byteData, string language)
+		private async Task<ImageAnalysis> IdentifyImageObjects(byte[] imageByteArray, string language)
 		{
 			var visualFeatures = Configuration.Current.VisualFeatures;
 			var details = Configuration.Current.ImageDetails;
@@ -202,15 +252,15 @@ namespace Verndale.CognitiveImageTagging.Services.ComputerVision
 				$"visualFeatures={visualFeatures}&details={details}&language={language}&detectOrientation={detectOrientation}";
 
 			// Assemble the URI for the REST API method.
-			string uri = Endpoint + "/analyze?" + requestParameters;
+			string uri = _endpoint + "/analyze?" + requestParameters;
 
 			HttpResponseMessage response;
-			using (ByteArrayContent content = new ByteArrayContent(byteData))
+			using (ByteArrayContent content = new ByteArrayContent(imageByteArray))
 			{
 				content.Headers.ContentType =
 					new MediaTypeHeaderValue("application/octet-stream");
 
-				response = await Client.PostAsync(uri, content);
+				response = await _client.PostAsync(uri, content);
 			}
 
 			var contentString = await response.Content.ReadAsStringAsync();
@@ -242,5 +292,12 @@ namespace Verndale.CognitiveImageTagging.Services.ComputerVision
 
 			return highConfidenceText;
 		}
-	}
+
+        private static byte[] GetImageimageByteArray(Stream imageStream)
+        {
+            Byte[] imageByteArray = new Byte[imageStream.Length];
+            imageStream.Read(imageByteArray, 0, imageByteArray.Length);
+            return imageByteArray;
+        }
+    }
 }
