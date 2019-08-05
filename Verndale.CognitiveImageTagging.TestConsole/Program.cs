@@ -1,57 +1,72 @@
-﻿using System.IO;
-using Verndale.CognitiveImageTagging.Services.ComputerVision;
+﻿using System;
+using System.IO;
+using Verndale.CognitiveImageTagging.Services;
 
 namespace Verndale.CognitiveImageTagging.TestConsole
 {
-    public static class Program
-    {
-        public static void Main()
-        {
-            MakeRequest();
-            System.Console.WriteLine("...");
-            System.Console.ReadLine();
-        }
+	public static class Program
+	{
+		public static void Main()
+		{
+			MakeRequest();
+			Console.WriteLine("...");
+			Console.ReadLine();
+		}
 
-        static async void MakeRequest()
-        {
-            var imageAnalysis = new ImageAnalyzer();
+		private static async void MakeRequest()
+		{
+			var imageAnalysis = new AzureService();
 
-            // Get the path and filename to process from the user.
-            System.Console.WriteLine("Analyze an image:");
-            System.Console.Write(
-                "Enter the path to the image you wish to analyze:");
-            string imageFilePath = System.Console.ReadLine();
+			// Get the path and filename to process from the user.
+			Console.WriteLine("Analyze an image:");
+			Console.Write(
+				"Enter the path to the image you wish to analyze:");
+			var imageFilePath = System.Console.ReadLine();
 
-            if (File.Exists(imageFilePath))
-            {
-                // Call the REST API method.
-                System.Console.WriteLine("\nWait a moment for the results to appear.\n");
+			if (string.IsNullOrEmpty(imageFilePath))
+			{
+				return;
+			}
 
-                if (imageFilePath == null)
-                {
-                    System.Console.WriteLine("\nImage is not available.\n");
-                    return;
-                }
+			if (File.Exists(imageFilePath))
+			{
+				// Call the REST API method.
+				Console.WriteLine("\nWait a moment for the results to appear.\n");
 
-                using (Stream stream = File.Open(imageFilePath, FileMode.Open))
-                {
-                    var metadata = await imageAnalysis.GetAltTextAndTags(stream, "en", true);
+				using (Stream stream = File.Open(imageFilePath, FileMode.Open))
+				{
+					var result = await imageAnalysis.GetImageDescription(stream, "en", true);
 
-                    System.Console.WriteLine("\nCaptions: ");
-                    foreach (var text in metadata.Captions)
-                    {
-                        System.Console.WriteLine(text.Caption);
-                    }
+					if (result.Status != ImageResult.ResultStatus.Success)
+					{
+						Console.WriteLine($"Unsuccessful: {result.Status}");
 
-                    System.Console.WriteLine("\nTags: " + string.Join(",", metadata.Tags));
+						if (result.Status == ImageResult.ResultStatus.Error)
+						{
+							Console.WriteLine("Error");
+							Console.WriteLine(result.Exception.Message);
+						}
+					}
 
-                    System.Console.WriteLine("\n\nPress enter to exit");
-                }
-            }
-            else
-            {
-                System.Console.WriteLine("\nInvalid file path");
-            }
-        }
-    }
+
+
+					Console.WriteLine("Captions: ");
+					foreach (var text in result.Captions)
+					{
+						Console.WriteLine(text);
+					}
+
+					Console.WriteLine("Tags: " + string.Join(",", result.Tags));
+
+					Console.WriteLine($"Contains text? {result.HasEmbeddedText}");
+
+					Console.WriteLine($"Embedded Text: {result.EmbeddedText}");
+				}
+			}
+			else
+			{
+				Console.WriteLine("Invalid file path");
+			}
+		}
+	}
 }
