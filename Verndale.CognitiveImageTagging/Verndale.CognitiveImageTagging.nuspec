@@ -4,33 +4,44 @@
 	<id>$id$</id>
 	<version>$version$</version>
 	<title>$title$</title>
-	<authors>Sandy Foley</authors>
+	<authors>Sandy Foley, Richard Cabral</authors>
 	<owners>Verndale</owners>
 	<license type="expression">MIT</license>
 	<projectUrl>https://github.com/verndale/verndale-cognitiveimagetagging</projectUrl>
 	<repository type="git" url="https://github.com/verndale/verndale-cognitiveimagetagging.git"/>
 	<requireLicenseAcceptance>false</requireLicenseAcceptance>
 	<iconUrl></iconUrl>
-	<summary>Small library for automatically determining the "alt text" or "tags" for a supplied image using Azure Cognitive Services.</summary>
+	<summary>Small library for automatically determining the "alt text" or "tags" for a supplied image using an AI service.</summary>
 	<description>
-This library features two functions:
+This library features three functions:
 
-- Determine the descriptive alt text of an image by using AI to "read" the image.
-- Determine the descriptive text tags (series of words) of an image by using AI to "read" the image.
+- Using AI, "read" the image and provide a sentence description of what it portrays.
+- Using AI, "read" the image and provide series of tags that describe what it portrays.
+- Using AI, perform OCR on the image and, if the image has embedded text, extract the text to a string value.
+
+The first two features are included in the IAnalysisService.GetImageDescription() call.
+OCR can be performed by opting it into the GetImageDescription() call or by calling the IAnalysisService.ExtractTextFromImage() call.
+
+Note that OCR tends to be a more expensive operation both in terms of elapsed time and number of connections to your AI service. Some charges may be incurred.
 
 Requirements
--
--
--
+You must have a subscription to Azure Cognitive Services for Computer Vision. You will need both a Subscription Key and an endpoint URL to use this library. Support for other AI
+services is planned.
 
 
-Installation
--
-- 
-- 
+Installation and Use
+Install this package using NuGet.
+
+You can get an instance of IAnalysisService through Verndale.CognitiveImageTagging.ServiceManager.GetAnalysisService()
+Alternately, you can use Dependency Injection. specify that IAnalysisService maps to Verndale.CognitiveImageTagging.Services.AzureService
+
+You must add configuration to your app.config or web.config file. See the enclosed app.config.example for details.
+
+In the supplied config example, you will see confidence levels for captions and embedded text. These are set to reasonable defaults, but be aware the AI can be
+quirky and unreliable. This tool should be used prime the pump on image descriptions but should not be used unsupervised.
 	</description>
 	<releaseNotes>Initial Release</releaseNotes>
 	<copyright>Copyright 2019</copyright>
-	<tags>Images, Alt Text, Cognitive Services, AI</tags>
+	<tags>Images, Alt Text, Cognitive Services, Computer Vision, AI</tags>
   </metadata>
 </package>

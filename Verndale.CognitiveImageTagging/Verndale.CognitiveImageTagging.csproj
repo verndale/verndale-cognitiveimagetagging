@@ -69,7 +69,7 @@
     <Compile Include="Services\IAnalysisService.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
+    <Content Include="App.config.example" />
     <None Include="packages.config" />
     <None Include="Verndale.CognitiveImageTagging.nuspec" />
   </ItemGroup>
