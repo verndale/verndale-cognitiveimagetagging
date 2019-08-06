@@ -10,7 +10,7 @@
 	<projectUrl>https://github.com/verndale/verndale-cognitiveimagetagging</projectUrl>
 	<repository type="git" url="https://github.com/verndale/verndale-cognitiveimagetagging.git"/>
 	<requireLicenseAcceptance>false</requireLicenseAcceptance>
-	<iconUrl></iconUrl>
+	<iconUrl>https://avatars2.githubusercontent.com/u/50928536</iconUrl>
 	<summary>Small library for automatically determining the "alt text" or "tags" for a supplied image using an AI service.</summary>
 	<description>
 This library features three functions:
