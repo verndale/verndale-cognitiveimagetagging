@@ -1,6 +1,5 @@
 ﻿using System.IO;
 using System.Threading.Tasks;
-using Verndale.CognitiveImageTagging.Services.Azure;
 
 namespace Verndale.CognitiveImageTagging.ImageTaggers
 {

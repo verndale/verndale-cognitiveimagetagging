@@ -53,7 +53,7 @@ can take some time to complete its evaluation. If you're sending a large batch o
 
 Note that OCR tends to be the more expensive operation, both in terms of elapsed time and number of (billed) connections to your AI service.
 	</description>
-	<releaseNotes>Initial Release</releaseNotes>
+	<releaseNotes>Fixed a namespace bug in ImageResult. Updated Nuget packages to latest.</releaseNotes>
 	<copyright>Copyright 2019</copyright>
 	<tags>Images, Alt Text, Cognitive Services, Computer Vision, AI</tags>
   </metadata>

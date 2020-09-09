@@ -9,7 +9,6 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Verndale.CognitiveImageTagging.Services.Azure;
 
 namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 {

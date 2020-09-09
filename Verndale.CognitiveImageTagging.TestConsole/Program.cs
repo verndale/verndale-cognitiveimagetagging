@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using Verndale.CognitiveImageTagging.Services.Azure;
 
 namespace Verndale.CognitiveImageTagging.TestConsole
 {
