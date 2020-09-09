@@ -1,4 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
+<!--
+	IMPORTANT
+
+
+	To successfully use this Package with your website, you need to reomove the "example" suffix at the end of this file name
+	and supply actual Azure Subscription Key and Services Uris to the connections elements below.
+-->
 <cognitiveImageTagging>
 	<!--  
 		AZURE SERVICE CONFIGURATION

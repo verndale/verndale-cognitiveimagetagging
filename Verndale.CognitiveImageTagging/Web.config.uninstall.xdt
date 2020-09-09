@@ -5,5 +5,5 @@
 			<section name="azureService" type="Verndale.CognitiveImageTagging.ImageTaggers.Azure.AzureServiceConfiguration, Verndale.CognitiveImageTagging"/>
 		</sectionGroup>
 	</configSections>
-	<cognitiveImageTagging  configSource="App_Config\Verndale.CognitiveImageTagging.config" />
+	<cognitiveImageTagging  configSource="App_Config\Verndale.CognitiveImageTagging.config" xdt:Transform="Remove" />
 </configuration>
