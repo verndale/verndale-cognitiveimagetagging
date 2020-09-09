@@ -58,10 +58,10 @@ namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 		/// <returns>A result object containing a list of tags, descriptions, whether there was embedded text, and what the embedded text was.</returns>
 		public async Task<ImageResult> GetImageDescription(byte[] image, string descriptionLanguage, bool checkForTextInImage)
 		{
-			var result = new ImageResult();
-
 			try
 			{
+				var result = new ImageResult();
+
 				var analysis = await MakeDescriptiveAnalysisRequestToAzure(image, descriptionLanguage);
 
 				if (analysis == null)
@@ -78,7 +78,7 @@ namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 
 					if (result == null)
 					{
-						// again, some sort of comm value, but oddly, no exceptions.
+						// again, some sort of comm failure, but oddly, no exceptions.
 						result = new ImageResult { Status = ImageResult.ResultStatus.NoResponse };
 						return result;
 					}
@@ -86,13 +86,13 @@ namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 
 				result.Captions = GetCaptionsAboveThreshold(analysis);
 				result.Tags = analysis.Description.Tags;
-			}
-			catch (Exception e)
-			{
-				result = new ImageResult { Status = ImageResult.ResultStatus.Error, Exception = e };
-			}
 
-			return result;
+				return result;
+			}
+			catch (Exception ex)
+			{
+				return new ImageResult { Status = ImageResult.ResultStatus.Error, Exception = ex };
+			}
 		}
 
 		/// <summary>
@@ -114,31 +114,42 @@ namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 		/// <returns>A result object specifying whether there was embedded text, and what the embedded text was.</returns>
 		public async Task<ImageResult> ExtractTextFromImage(byte[] image)
 		{
-			var result = new ImageResult();
-			var callbackUrl = await MakeOcrAnalysisRequestToAzure(image);
 
-			Thread.Sleep(1000); // need to give the AI time to OCR the text.
-
-			var wordList = await GetOcrAnalysisResultFromAzure(callbackUrl);
-
-			var captionBuilder = new StringBuilder();
-
-			foreach (var word in wordList)
+			try
 			{
-				if (captionBuilder.Length > 0)
+				var result = new ImageResult();
+
+				var callbackUrl = await MakeOcrAnalysisRequestToAzure(image);
+
+				Thread.Sleep(1000); // need to give the AI time to OCR the text.
+
+				var wordList = await GetOcrAnalysisResultFromAzure(callbackUrl);
+
+				var builder = new StringBuilder();
+
+				foreach (var word in wordList)
 				{
-					captionBuilder.Append(" ");
+					if (builder.Length > 0)
+					{
+						builder.Append(" ");
+					}
+
+					builder.Append(word);
 				}
 
-				captionBuilder.Append(word);
+				result.EmbeddedText = builder.ToString();
+				return result;
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex);
+				return new ImageResult { Status = ImageResult.ResultStatus.Error, Exception = ex };
 			}
 
-			result.EmbeddedText = captionBuilder.ToString();
-			return result;
 		}
 		#endregion
 
-		#region Locals
+		#region Main work
 		/// <summary>
 		/// Submits an image for descriptive analysis. 
 		/// </summary>
@@ -193,21 +204,30 @@ namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 		{
 			using (var client = new HttpClient())
 			{
-				client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", ConnectionDetails.SubscriptionKey);
-				var url = ConnectionDetails.GetOcrUrl();
-
-				HttpResponseMessage response;
-				using (ByteArrayContent content = new ByteArrayContent(imageAsBytes))
+				try
 				{
-					content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-					response = await client.PostAsync(url, content);
+					client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", ConnectionDetails.SubscriptionKey);
+					var url = ConnectionDetails.GetOcrUrl();
+
+					HttpResponseMessage response;
+					using (ByteArrayContent content = new ByteArrayContent(imageAsBytes))
+					{
+						content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+						response = await client.PostAsync(url, content);
+					}
+
+					// Operation-Location is the URI where the results can be found. There will only be 1 value here, but .NET doesn't let us do this quickly.
+					if (response.Headers.TryGetValues("Operation-Location", out var headerValues))
+					{
+						return headerValues.FirstOrDefault();
+					}
+				}
+				catch (HttpRequestException ex)
+				{
+					Console.WriteLine(ex);
+					throw;
 				}
 
-				// Operation-Location is the URI where the results can be found. There will only be 1 value here, but .NET doesn't let us do this quickly.
-				if (response.Headers.TryGetValues("Operation-Location", out var headerValues))
-				{
-					return headerValues.FirstOrDefault();
-				}
 			}
 
 			return null;
@@ -225,24 +245,32 @@ namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 				return null;
 			}
 
-			using (var client = new HttpClient())
+			try
 			{
-				client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", ConnectionDetails.SubscriptionKey);
-				var response = await client.GetAsync(resultEndpoint);
-				if (response == null)
+				using (var client = new HttpClient())
 				{
-					return null;
+					client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", ConnectionDetails.SubscriptionKey);
+					var response = await client.GetAsync(resultEndpoint);
+					if (response == null)
+					{
+						return null;
+					}
+
+					var json = await response.Content.ReadAsStringAsync();
+					var result = JsonConvert.DeserializeObject<TextOperationResult>(json);
+
+					if (result.Status != TextOperationStatusCodes.Succeeded)
+					{
+						return null;
+					}
+
+					return result.RecognitionResult.Lines.Select(line => line.Text);
 				}
-
-				var json = await response.Content.ReadAsStringAsync();
-				var result = JsonConvert.DeserializeObject<TextOperationResult>(json);
-
-				if (result.Status != TextOperationStatusCodes.Succeeded)
-				{
-					return null;
-				}
-
-				return result.RecognitionResult.Lines.Select(line => line.Text);
+			}
+			catch (HttpRequestException ex)
+			{
+				Console.WriteLine(ex);
+				throw;
 			}
 		}
 		#endregion
