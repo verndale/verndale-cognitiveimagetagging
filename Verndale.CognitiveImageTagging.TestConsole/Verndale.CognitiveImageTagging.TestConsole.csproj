@@ -55,5 +55,6 @@
       <Name>Verndale.CognitiveImageTagging</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

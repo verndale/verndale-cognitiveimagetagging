@@ -32,10 +32,9 @@ services is planned.
 Installation and Use
 Install this package using NuGet.
 
-You can get an instance of IAnalysisService through Verndale.CognitiveImageTagging.ServiceManager.GetAnalysisService()
-Alternately, you can use Dependency Injection. specify that IAnalysisService maps to Verndale.CognitiveImageTagging.Services.AzureService
+You can get an instance of IImageTagger through Verndale.CognitiveImageTagging.TagManager.GetImageTagger(nameOfConnection)
 
-You must add configuration to your app.config or web.config file. See the enclosed app.config.example for details.
+This package will modify the web.config to support configuration through a discrete config file in your app_config folder.
 
 In the supplied config example, you will see confidence levels for captions and embedded text. These are set to reasonable defaults, but be aware the AI can be
 quirky and unreliable. This tool should be used prime the pump on image descriptions but should not be used unsupervised.

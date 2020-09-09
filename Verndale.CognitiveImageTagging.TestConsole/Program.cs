@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using Verndale.CognitiveImageTagging.Services.Azure;
 
 namespace Verndale.CognitiveImageTagging.TestConsole
 {
@@ -20,9 +21,9 @@ namespace Verndale.CognitiveImageTagging.TestConsole
 			{
 				using (Stream stream = File.Open(path, FileMode.Open))
 				{
-					var service = ServiceManager.GetAnalysisService();
+					var tagger = ImageTaggingManager.GetImageTagger();
 
-					var result = await service.GetImageDescription(stream, "en", true);
+					var result = await tagger.GetImageDescription(stream, "en", true);
 
 					if (result.Status != ImageResult.ResultStatus.Success)
 					{

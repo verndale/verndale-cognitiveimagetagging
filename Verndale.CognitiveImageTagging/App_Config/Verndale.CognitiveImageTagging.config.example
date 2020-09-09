@@ -1,19 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
-<configuration>
-	<configSections>
-		<!--
-		You must add the following sectionGroup element to your app.config or web.config configSections element.
-		-->
-		<sectionGroup name="cognitiveImageTagging" type="Verndale.CognitiveImageTagging.Configuration, Verndale.CognitiveImageTagging">
-			<section name="azureService" type="Verndale.CognitiveImageTagging.Services.AzureServiceConfiguration, Verndale.CognitiveImageTagging"/>
-		</sectionGroup>
-	</configSections>
-
-	<!-- 
-	You must add the following element to your configuration element.
-	-->
-	<cognitiveImageTagging>
-		<!--  
+<cognitiveImageTagging>
+	<!--  
 		AZURE SERVICE CONFIGURATION
 		
 		subscriptionKey = Every web API call of Computer Vision requires a pay-per-use subscription key. 
@@ -22,6 +9,14 @@
 		cognitiveServicesUri = You must use the same Azure region in your REST API method as you used to
 			get your subscription keys. For example, if you got your subscription keys
 			Free trial subscription keys are generated in the "westcentralus" region.
+		
+		endpointName = In this case, it should be "vision" because we're using computer vision. We separated
+			this value out of the URL in case it changes in the future, and because the default Azure dialog
+			for getting the cognitive services URI does not include the /vision slug. You must supply an 
+			endpoint name.
+		
+		serviceVersionNumber = In this case, it should be 2.0 because that's the version of the service that
+			this module was programmed to use.You must supply a version number.
 			
 		textInImageConfidenceLevel - Percentage at which the api is trusted to have detected text in an image.
 			NOTE: To analyze the text in an image is two additional calls to the API.
@@ -45,13 +40,27 @@
 		detectOrientation - Forces Azure to rotate an image that is not right-way up while processing text.
 			Default: true
 		-->
-		<azureService
-			subscriptionKey="000000000000000000000000000000000"
-				  cognitiveServicesUri="https://westus2.api.cognitive.microsoft.com/vision/v2.0"
-				  textInImageConfidenceLevel=".9"
-				  captionConfidenceLevel=".75"
-				  visualFeatures="Description,Tags"
-				  details=""
-				  detectOrientation="true"/>
-	</cognitiveImageTagging>
-</configuration>
+	<azureService defaultConnectionName="dev">
+		<connections>
+			<add name="dev" subscriptionKey="000000000000000000000000000000000"
+			     cognitiveServicesUri="https://westus2.api.cognitive.microsoft.com"
+			     endpointName="vision"
+			     serviceVersionNumber="2.0"
+			     textInImageConfidenceLevel=".9"
+			     captionConfidenceLevel=".75"
+			     visualFeatures="Description,Tags"
+			     details=""
+			     detectOrientation="true"/>
+			<add name="prod" subscriptionKey="000000000000000000000000000000000"
+			     cognitiveServicesUri="https://westus2.api.cognitive.microsoft.com"
+			     endpointName="vision"
+			     serviceVersionNumber="2.0"
+			     textInImageConfidenceLevel=".9"
+			     captionConfidenceLevel=".75"
+			     visualFeatures="Description,Tags"
+			     details=""
+			     detectOrientation="true"/>
+		</connections>
+	</azureService> 
+		
+</cognitiveImageTagging>

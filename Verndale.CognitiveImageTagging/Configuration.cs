@@ -3,6 +3,9 @@ using System.Web.Configuration;
 
 namespace Verndale.CognitiveImageTagging
 {
+	/// <summary>
+	/// This has to be here to support the App.Config file modification through code.
+	/// </summary>
 	public class Configuration : ConfigurationSectionGroup
 	{
 

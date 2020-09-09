@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Verndale.CognitiveImageTagging
+namespace Verndale.CognitiveImageTagging.Services.Azure
 {
 	public class ImageResult
 	{

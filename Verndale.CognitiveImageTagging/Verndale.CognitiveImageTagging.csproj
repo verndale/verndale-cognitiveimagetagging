@@ -63,15 +63,21 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration.cs" />
-    <Compile Include="ServiceManager.cs" />
-    <Compile Include="Services\AzureServiceConfiguration.cs" />
+    <Compile Include="ImageTaggingManager.cs" />
+    <Compile Include="ImageTaggers\Azure\ConnectionDetails.cs" />
+    <Compile Include="ImageTaggers\Azure\AzureServiceConfiguration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Services\AzureService.cs" />
+    <Compile Include="ImageTaggers\Azure\AzureImageTagger.cs" />
     <Compile Include="ImageResult.cs" />
-    <Compile Include="Services\IAnalysisService.cs" />
+    <Compile Include="ImageTaggers\Azure\ConnectionCollection.cs" />
+    <Compile Include="ImageTaggers\IImageTagger.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="App.config.example" />
+    <Content Include="Web.config.install.xdt" />
+    <Content Include="Web.config.uninstall.xdt" />
+    <Content Include="App.config.uninstall.xdt" />
+    <Content Include="App.config.install.xdt" />
+    <Content Include="App_Config\Verndale.CognitiveImageTagging.config.example" />
     <None Include="packages.config" />
     <None Include="Verndale.CognitiveImageTagging.nuspec" />
   </ItemGroup>

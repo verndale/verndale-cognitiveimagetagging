@@ -9,14 +9,31 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Verndale.CognitiveImageTagging.Services.Azure;
 
-namespace Verndale.CognitiveImageTagging.Services
+namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 {
 	/// <summary>
 	/// Facade around Azure's Cognitive Services Image Processing.
 	/// </summary>
-	public class AzureService : IAnalysisService
+	public class AzureImageTagger : IImageTagger
 	{
+		#region locals
+
+		protected readonly ConnectionDetails ConnectionDetails;
+		#endregion
+
+		#region Constructors
+		/// <summary>
+		/// Creates a new instance of AzureService using the provided Connection Details.
+		/// </summary>
+		/// <param name="connectionDetails">The AzureConnection details to use.</param>
+		public AzureImageTagger(ConnectionDetails connectionDetails)
+		{
+			ConnectionDetails = connectionDetails;
+		}
+		#endregion
+
 		#region public Methods
 		/// <summary>
 		/// Given an Image, use AI to review the image and generate words and sentences to describe the contents of the image in the supplied language. Optionally, specify any text that is embedded within the image itself.
@@ -128,29 +145,36 @@ namespace Verndale.CognitiveImageTagging.Services
 		/// <param name="imageByteArray">The image to analyze as a byte array.</param>
 		/// <param name="language">The language to use in the returned description.</param>
 		/// <returns>An Azure ImageAnalysis object or null.</returns>
-		private static async Task<ImageAnalysis> MakeDescriptiveAnalysisRequestToAzure(byte[] imageByteArray, string language)
+		private async Task<ImageAnalysis> MakeDescriptiveAnalysisRequestToAzure(byte[] imageByteArray, string language)
 		{
 			using (var client = new HttpClient())
 			{
-				client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", AzureServiceConfiguration.Current.SubscriptionKey);
+				client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", ConnectionDetails.SubscriptionKey);
 				using (var content = new ByteArrayContent(imageByteArray))
 				{
-					var uri = GetEndpointUrl(language);
-					content.Headers.ContentType =
-						new MediaTypeHeaderValue("application/octet-stream");
-
-					var response = await client.PostAsync(uri, content);
-					if (response == null)
+					try
 					{
-						return null;
+						var uri = ConnectionDetails.GetAnalyzeUrl(language);
+						content.Headers.ContentType =
+							new MediaTypeHeaderValue("application/octet-stream");
+
+						var response = await client.PostAsync(uri, content);
+						response.EnsureSuccessStatusCode();
+
+
+						var json = await response.Content.ReadAsStringAsync();
+						return JsonConvert.DeserializeObject<ImageAnalysis>(json);
+
+					}
+					catch (HttpRequestException ex)
+					{
+						Console.WriteLine(ex);
+						throw;
 					}
 
-					var json = await response.Content.ReadAsStringAsync();
-					return JsonConvert.DeserializeObject<ImageAnalysis>(json);
 				}
 			}
 		}
-
 
 
 		/// <summary>
@@ -165,12 +189,12 @@ namespace Verndale.CognitiveImageTagging.Services
 		/// Client side should further query the read operation status using the URL specified in this header.
 		/// The operation ID will expire in 48 hours.
 		/// </remarks>
-		private static async Task<string> MakeOcrAnalysisRequestToAzure(byte[] imageAsBytes)
+		private async Task<string> MakeOcrAnalysisRequestToAzure(byte[] imageAsBytes)
 		{
 			using (var client = new HttpClient())
 			{
-				client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", AzureServiceConfiguration.Current.SubscriptionKey);
-				var url = $"{AzureServiceConfiguration.Current.CognitiveServicesUri}/recognizeText?mode={AzureServiceConfiguration.Current.TextCheckMode}";
+				client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", ConnectionDetails.SubscriptionKey);
+				var url = ConnectionDetails.GetOcrUrl();
 
 				HttpResponseMessage response;
 				using (ByteArrayContent content = new ByteArrayContent(imageAsBytes))
@@ -194,7 +218,7 @@ namespace Verndale.CognitiveImageTagging.Services
 		/// </summary>
 		/// <param name="resultEndpoint">the URL where the results can be found.</param>
 		/// <returns>The words that were found embedded within the image.</returns>
-		private static async Task<IEnumerable<string>> GetOcrAnalysisResultFromAzure(string resultEndpoint)
+		private async Task<IEnumerable<string>> GetOcrAnalysisResultFromAzure(string resultEndpoint)
 		{
 			if (string.IsNullOrEmpty(resultEndpoint))
 			{
@@ -203,7 +227,7 @@ namespace Verndale.CognitiveImageTagging.Services
 
 			using (var client = new HttpClient())
 			{
-				client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", AzureServiceConfiguration.Current.SubscriptionKey);
+				client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", ConnectionDetails.SubscriptionKey);
 				var response = await client.GetAsync(resultEndpoint);
 				if (response == null)
 				{
@@ -225,32 +249,14 @@ namespace Verndale.CognitiveImageTagging.Services
 
 		#region Helpers
 		/// <summary>
-		/// Assemble the URL for an image analysis request.
-		/// </summary>
-		/// <param name="language">The language code to pass with the parameters.</param>
-		/// <returns>a URL to use for image analysis.</returns>
-		private static string GetEndpointUrl(string language)
-		{
-			var endpoint = AzureServiceConfiguration.Current.CognitiveServicesUri;
-			var visualFeatures = AzureServiceConfiguration.Current.VisualFeatures;
-			var details = AzureServiceConfiguration.Current.ImageDetails;
-			var detectOrientation = AzureServiceConfiguration.Current.DetectOrientation;
-
-			var requestParameters =
-				$"visualFeatures={visualFeatures}&details={details}&language={language}&detectOrientation={detectOrientation}";
-
-			return endpoint + "/analyze?" + requestParameters;
-		}
-
-		/// <summary>
 		/// Reviews the Azure analysis and includes any Caption text that exceeds the current Caption Confidence Level setting.
 		/// Captions are sorted by highest confidence level.
 		/// </summary>
 		/// <param name="analysis">The Azure ImageAnalysis object to interrogate.</param>
 		/// <returns>a list of captions sorted by confidence level.</returns>
-		private static IEnumerable<string> GetCaptionsAboveThreshold(ImageAnalysis analysis)
+		private IEnumerable<string> GetCaptionsAboveThreshold(ImageAnalysis analysis)
 		{
-			var confidenceThreshold = AzureServiceConfiguration.Current.CaptionConfidenceLevel;
+			var confidenceThreshold = ConnectionDetails.CaptionConfidenceLevel;
 
 			var captions = new SortedList<double, string>();
 
@@ -272,9 +278,9 @@ namespace Verndale.CognitiveImageTagging.Services
 		/// </summary>
 		/// <param name="imageAnalysis">object returned from Cognitive Services after image analysis</param>
 		/// <returns>true, if image contains text within the confidence threshold. otherwise, false</returns>
-		private static bool ImageLikelyContainsText(ImageAnalysis imageAnalysis)
+		private bool ImageLikelyContainsText(ImageAnalysis imageAnalysis)
 		{
-			var confidenceThreshold = AzureServiceConfiguration.Current.TextInImageConfidenceLevel;
+			var confidenceThreshold = ConnectionDetails.TextInImageConfidenceLevel;
 
 			foreach (var tag in imageAnalysis.Tags)
 			{

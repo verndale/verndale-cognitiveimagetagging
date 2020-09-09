@@ -1,9 +1,10 @@
 ﻿using System.IO;
 using System.Threading.Tasks;
+using Verndale.CognitiveImageTagging.Services.Azure;
 
-namespace Verndale.CognitiveImageTagging.Services
+namespace Verndale.CognitiveImageTagging.ImageTaggers
 {
-	public interface IAnalysisService
+	public interface IImageTagger
 	{
 		/// <summary>
 		/// Given an Image, use AI to review the image and generate words and sentences to describe the contents of the image in the supplied language. Optionally, specify any text that is embedded within the image itself.
