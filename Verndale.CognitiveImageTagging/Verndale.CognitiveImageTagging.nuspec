@@ -19,18 +19,21 @@ This library features three functions:
 - Using AI, "read" the image and provide series of tags that describe what it portrays.
 - Using AI, perform OCR on the image and, if the image has embedded text, extract the text to a string value.
 
-The first two features are included in the IAnalysisService.GetImageDescription() call.
-OCR can be performed by opting it into the GetImageDescription() call or by calling the IAnalysisService.ExtractTextFromImage() call.
+The first two features are included in the IImageTagger.GetImageDescription() call.
+OCR can be performed by opting it into the IImageTagger.GetImageDescription() call or by calling the IImageTagger.ExtractTextFromImage() call.
 
 Note that OCR tends to be a more expensive operation both in terms of elapsed time and number of connections to your AI service. Some charges may be incurred.
 
 Requirements
 You must have a subscription to Azure Cognitive Services for Computer Vision. You will need both a Subscription Key and an endpoint URL to use this library. Support for other AI
-services is planned.
+services are not implemented, but you can see where the extension would occur.
 
 
 Installation and Use
 Install this package using NuGet.
+
+Configure your app.config file or your web.config file with appropriate AzureServiceConnections. Note that version 2.0 supports named connections so you can have
+different accounts for different server environments as necessary.
 
 You can get an instance of IImageTagger through Verndale.CognitiveImageTagging.TagManager.GetImageTagger(nameOfConnection)
 
