@@ -14,7 +14,11 @@ services are not implemented, but you can see where the extension would occur.
 
 
 ## Installation
-Install this package using NuGet.
+Install this package using NuGet. 
+
+https://www.nuget.org/packages/Verndale.CognitiveImageTagging/2.0.1.20240
+
+`Install-Package Verndale.CognitiveImageTagging -Version 2.0.1.20240`
 
 If used in a plain old .NET application, Configure your app.config file with appropriate AzureServiceConnections.
 
