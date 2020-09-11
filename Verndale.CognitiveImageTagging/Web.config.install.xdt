@@ -1,9 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <configuration xmlns:xdt="http://schemas.microsoft.com/XML-Document-Transform">
 	<configSections xdt:Transform="InsertIfMissing">
-		<sectionGroup name="cognitiveImageTagging" type="Verndale.CognitiveImageTagging.Configuration, Verndale.CognitiveImageTagging" xdt:Transform="InsertIfMissing">
-			<section name="azureService" type="Verndale.CognitiveImageTagging.ImageTaggers.Azure.AzureServiceConfiguration, Verndale.CognitiveImageTagging"/>
-		</sectionGroup>
+		<section name="cognitiveImageTagging" type="Verndale.CognitiveImageTagging.Configuration, Verndale.CognitiveImageTagging" xdt:Transform="InsertIfMissing"/>
 	</configSections>
 	<cognitiveImageTagging  configSource="App_Config\Verndale.CognitiveImageTagging.config" xdt:Transform="InsertIfMissing" />
 </configuration>
