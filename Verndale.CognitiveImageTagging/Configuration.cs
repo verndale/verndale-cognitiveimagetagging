@@ -1,39 +1,31 @@
 ﻿using System.Configuration;
-using System.Web.Configuration;
+using Verndale.CognitiveImageTagging.ImageTaggers.Azure;
 
 namespace Verndale.CognitiveImageTagging
 {
 	/// <summary>
 	/// This has to be here to support the App.Config file modification through code.
 	/// </summary>
-	public class Configuration : ConfigurationSectionGroup
+	public class Configuration : ConfigurationSection
 	{
-
-		#region Constructor
-		protected Configuration()
-		{
-
-		}
-		#endregion
-
-		#region Access Methods
-
-		private static Configuration _current;
-
 		public static Configuration Current
 		{
 			get
 			{
-				if (_current == null)
-				{
-					var config = WebConfigurationManager.OpenWebConfiguration(null);
-					_current = config.GetSectionGroup("CognitiveImageTagging") as Configuration;
-				}
-
-				return _current;
+				return ConfigurationManager.GetSection("cognitiveImageTagging") as Configuration;
 			}
 		}
 
-		#endregion
+		[ConfigurationProperty("azureService")]
+		public AzureServiceConfiguration AzureService
+		{
+			get
+			{
+				AzureServiceConfiguration azureService = (AzureServiceConfiguration)base["azureService"];
+
+				return azureService;
+			}
+		}
+
 	}
 }

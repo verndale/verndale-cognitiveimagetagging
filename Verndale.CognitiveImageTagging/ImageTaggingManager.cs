@@ -1,4 +1,5 @@
-﻿using Verndale.CognitiveImageTagging.ImageTaggers;
+﻿using System.Configuration;
+using Verndale.CognitiveImageTagging.ImageTaggers;
 using Verndale.CognitiveImageTagging.ImageTaggers.Azure;
 
 namespace Verndale.CognitiveImageTagging
@@ -14,13 +15,38 @@ namespace Verndale.CognitiveImageTagging
 		/// <returns>An instance of IAnalysisService</returns>
 		public static IImageTagger GetImageTagger()
 		{
-			// TODO: make this configurable once we've got more than one.
-			return new AzureImageTagger(AzureServiceConfiguration.Current.DefaultConnection);
+			return GetImageTagger(string.Empty);
 		}
 
 		public static IImageTagger GetImageTagger(string connectionName)
 		{
-			return new AzureImageTagger(AzureServiceConfiguration.Current.Connections[connectionName]);
+			if (Configuration.Current == null)
+			{
+				throw new ConfigurationErrorsException("Verndale.CognitiveImageTagging: Missing configuration element \"cognitiveImageTagging\".");
+			}
+
+			if (Configuration.Current.AzureService == null)
+			{
+				throw new ConfigurationErrorsException("Verndale.CognitiveImageTagging: Missing configuration element \"cognitiveImageTagging\\azureService\".");
+			}
+
+			ConnectionDetails connectionDetails;
+
+			if (string.IsNullOrEmpty(connectionName))
+			{
+				connectionDetails = Configuration.Current.AzureService.DefaultConnection;
+			}
+			else
+			{
+				connectionDetails = Configuration.Current?.AzureService?.Connections[connectionName];
+			}
+
+			if (connectionDetails == null)
+			{
+				throw new ConfigurationErrorsException($"Verndale.CognitiveImageTagging: Missing default or named ConnectionDetails.");
+			}
+
+			return new AzureImageTagger(connectionDetails);
 		}
 	}
 }

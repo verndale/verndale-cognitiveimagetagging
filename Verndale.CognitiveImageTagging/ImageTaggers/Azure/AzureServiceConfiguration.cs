@@ -5,19 +5,8 @@ namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 	/// <summary>
 	/// The application settings as set in the app.config or web.config
 	/// </summary>
-	public class AzureServiceConfiguration : ConfigurationSection
+	public class AzureServiceConfiguration : ConfigurationElement
 	{
-		/// <summary>
-		/// The currently loaded settings
-		/// </summary>
-		public static AzureServiceConfiguration Current
-		{
-			get
-			{
-				return ConfigurationManager.GetSection("cognitiveImageTagging/azureService") as AzureServiceConfiguration;
-			}
-		}
-
 		/// <summary>
 		/// The Default Azure Connection information.
 		/// </summary>
