@@ -12,7 +12,7 @@ namespace Verndale.CognitiveImageTagging.TestConsole
 			Console.ReadLine();
 		}
 
-		private static async void MakeRequest()
+		private static void MakeRequest()
 		{
 			var path = GetFilePath();
 
@@ -22,7 +22,7 @@ namespace Verndale.CognitiveImageTagging.TestConsole
 				{
 					var tagger = ImageTaggingManager.GetImageTagger();
 
-					var result = await tagger.GetImageDescription(stream, "en", true);
+					var result = tagger.GetImageDescription(stream, "en", true);
 
 					if (result.Status != ImageResult.ResultStatus.Success)
 					{

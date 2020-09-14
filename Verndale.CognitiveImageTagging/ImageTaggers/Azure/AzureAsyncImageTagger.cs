@@ -4,17 +4,18 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 {
 	/// <summary>
 	/// Facade around Azure's Cognitive Services Image Processing.
 	/// </summary>
-	public class AzureImageTagger : IImageTagger
+	public class AzureAsyncImageTagger : IImageTagger
 	{
 		#region locals
 
@@ -26,7 +27,7 @@ namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 		/// Creates a new instance of AzureService using the provided Connection Details.
 		/// </summary>
 		/// <param name="connectionDetails">The AzureConnection details to use.</param>
-		public AzureImageTagger(ConnectionDetails connectionDetails)
+		public AzureAsyncImageTagger(ConnectionDetails connectionDetails)
 		{
 			ConnectionDetails = connectionDetails;
 		}
@@ -40,11 +41,11 @@ namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 		/// <param name="descriptionLanguage">The language for the caption and tags returned.</param>
 		/// <param name="checkForTextInImage">Whether to run a check for embedded text. Note that this requires two additional connections to Azure, which may affect your utilization.</param>
 		/// <returns>A result object containing a list of tags, descriptions, whether there was embedded text, and what the embedded text was.</returns>
-		public ImageResult GetImageDescription(Stream image, string descriptionLanguage, bool checkForTextInImage)
+		public async Task<ImageResult> GetImageDescription(Stream image, string descriptionLanguage, bool checkForTextInImage)
 		{
 			byte[] bytes = new byte[image.Length];
 			image.Read(bytes, 0, bytes.Length);
-			return GetImageDescription(bytes, descriptionLanguage, checkForTextInImage);
+			return await GetImageDescription(bytes, descriptionLanguage, checkForTextInImage);
 		}
 
 		/// <summary>
@@ -54,13 +55,13 @@ namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 		/// <param name="descriptionLanguage">The language for the caption and tags returned.</param>
 		/// <param name="checkForTextInImage">Whether to run a check for embedded text. Note that this requires two additional connections to Azure, which may affect your utilization.</param>
 		/// <returns>A result object containing a list of tags, descriptions, whether there was embedded text, and what the embedded text was.</returns>
-		public ImageResult GetImageDescription(byte[] image, string descriptionLanguage, bool checkForTextInImage)
+		public async Task<ImageResult> GetImageDescription(byte[] image, string descriptionLanguage, bool checkForTextInImage)
 		{
 			try
 			{
 				var result = new ImageResult();
 
-				var analysis = MakeDescriptiveAnalysisRequestToAzure(image, descriptionLanguage);
+				var analysis = await MakeDescriptiveAnalysisRequestToAzure(image, descriptionLanguage);
 
 				if (analysis == null)
 				{
@@ -72,7 +73,7 @@ namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 
 				if (checkForTextInImage && ImageLikelyContainsText(analysis))
 				{
-					result = ExtractTextFromImage(image);
+					result = await ExtractTextFromImage(image);
 
 					if (result == null)
 					{
@@ -98,11 +99,11 @@ namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 		/// </summary>
 		/// <param name="image">The image to process.</param>
 		/// <returns>A result object specifying whether there was embedded text, and what the embedded text was.</returns>
-		public ImageResult ExtractTextFromImage(Stream image)
+		public async Task<ImageResult> ExtractTextFromImage(Stream image)
 		{
 			byte[] bytes = new byte[image.Length];
 			image.Read(bytes, 0, bytes.Length);
-			return ExtractTextFromImage(bytes);
+			return await ExtractTextFromImage(bytes);
 		}
 
 		/// <summary>
@@ -110,18 +111,18 @@ namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 		/// </summary>
 		/// <param name="image">The image to process.</param>
 		/// <returns>A result object specifying whether there was embedded text, and what the embedded text was.</returns>
-		public ImageResult ExtractTextFromImage(byte[] image)
+		public async Task<ImageResult> ExtractTextFromImage(byte[] image)
 		{
 
 			try
 			{
 				var result = new ImageResult();
 
-				var callbackUrl = MakeOcrAnalysisRequestToAzure(image);
+				var callbackUrl = await MakeOcrAnalysisRequestToAzure(image);
 
 				Thread.Sleep(1000); // need to give the AI time to OCR the text.
 
-				var wordList = GetOcrAnalysisResultFromAzure(callbackUrl);
+				var wordList = await GetOcrAnalysisResultFromAzure(callbackUrl);
 
 				var builder = new StringBuilder();
 
@@ -154,53 +155,42 @@ namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 		/// <param name="imageByteArray">The image to analyze as a byte array.</param>
 		/// <param name="language">The language to use in the returned description.</param>
 		/// <returns>An Azure ImageAnalysis object or null.</returns>
-		private ImageAnalysis MakeDescriptiveAnalysisRequestToAzure(byte[] imageByteArray, string language)
+		private async Task<ImageAnalysis> MakeDescriptiveAnalysisRequestToAzure(byte[] imageByteArray, string language)
 		{
-			ImageAnalysis output = null;
-			HttpWebResponse response = null;
-
-			try
+			using (var client = new HttpClient())
 			{
-				var request = WebRequest.CreateHttp(new Uri(ConnectionDetails.GetAnalyzeUrl(language)));
-				request.ContentType = "application/octet-stream";
-				request.Headers.Add("Ocp-Apim-Subscription-Key", ConnectionDetails.SubscriptionKey);
-				request.Method = "POST";
-				request.ContentLength = imageByteArray.Length;
-				var requestStream = request.GetRequestStream();
-				requestStream.Write(imageByteArray, 0, imageByteArray.Length);
-				requestStream.Close();
-
-
-				response = (HttpWebResponse)request.GetResponse();
-
-
-				if (response.StatusCode != HttpStatusCode.OK)
+				client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", ConnectionDetails.SubscriptionKey);
+				using (var content = new ByteArrayContent(imageByteArray))
 				{
-					throw new HttpRequestException("did not return success");
+					try
+					{
+						var uri = ConnectionDetails.GetAnalyzeUrl(language);
+						content.Headers.ContentType =
+							new MediaTypeHeaderValue("application/octet-stream");
+
+						var response = await client.PostAsync(uri, content);
+						response.EnsureSuccessStatusCode();
+
+
+						var json = await response.Content.ReadAsStringAsync();
+						return JsonConvert.DeserializeObject<ImageAnalysis>(json);
+
+					}
+					catch (HttpRequestException ex)
+					{
+						Console.WriteLine(ex);
+						throw;
+					}
+
 				}
-
-				// ReSharper disable once AssignNullToNotNullAttribute
-				var reader = new StreamReader(response.GetResponseStream());
-				output = JsonConvert.DeserializeObject<ImageAnalysis>(reader.ReadToEnd());
 			}
-			catch (HttpRequestException ex)
-			{
-				Console.WriteLine(ex);
-				throw;
-			}
-			finally
-			{
-				response?.Close();
-			}
-
-			return output;
 		}
 
 
 		/// <summary>
 		/// Submits an image for OCR analysis. The analysis is async, so a second call needs to be made to retrieve the results.
 		/// </summary>
-		/// <param name="imageByteArray">the image to process, as a byte array</param>
+		/// <param name="imageAsBytes">the image to process, as a byte array</param>
 		/// <returns>url where the result of analysis can be found. or null.</returns>
 		/// <remarks>
 		/// Method requires a Response 202 from initial image response
@@ -209,44 +199,37 @@ namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 		/// Client side should further query the read operation status using the URL specified in this header.
 		/// The operation ID will expire in 48 hours.
 		/// </remarks>
-		private string MakeOcrAnalysisRequestToAzure(byte[] imageByteArray)
+		private async Task<string> MakeOcrAnalysisRequestToAzure(byte[] imageAsBytes)
 		{
-			string callbackUrl = null;
-			HttpWebResponse response = null;
-
-			try
+			using (var client = new HttpClient())
 			{
-				var request = WebRequest.CreateHttp(new Uri(ConnectionDetails.GetOcrUrl()));
-				request.ContentType = "application/octet-stream";
-				request.Headers.Add("Ocp-Apim-Subscription-Key", ConnectionDetails.SubscriptionKey);
-				request.Method = "POST";
-				request.ContentLength = imageByteArray.Length;
-				var requestStream = request.GetRequestStream();
-				requestStream.Write(imageByteArray, 0, imageByteArray.Length);
-				requestStream.Close();
-
-
-				response = (HttpWebResponse)request.GetResponse();
-
-
-				if (response.StatusCode != HttpStatusCode.OK)
+				try
 				{
-					throw new HttpRequestException("did not return success");
+					client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", ConnectionDetails.SubscriptionKey);
+					var url = ConnectionDetails.GetOcrUrl();
+
+					HttpResponseMessage response;
+					using (ByteArrayContent content = new ByteArrayContent(imageAsBytes))
+					{
+						content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+						response = await client.PostAsync(url, content);
+					}
+
+					// Operation-Location is the URI where the results can be found. There will only be 1 value here, but .NET doesn't let us do this quickly.
+					if (response.Headers.TryGetValues("Operation-Location", out var headerValues))
+					{
+						return headerValues.FirstOrDefault();
+					}
+				}
+				catch (HttpRequestException ex)
+				{
+					Console.WriteLine(ex);
+					throw;
 				}
 
-				callbackUrl = response.Headers["Operation-Location"];
-			}
-			catch (HttpRequestException ex)
-			{
-				Console.WriteLine(ex);
-				throw;
-			}
-			finally
-			{
-				response?.Close();
 			}
 
-			return callbackUrl;
+			return null;
 		}
 
 		/// <summary>
@@ -254,54 +237,40 @@ namespace Verndale.CognitiveImageTagging.ImageTaggers.Azure
 		/// </summary>
 		/// <param name="resultEndpoint">the URL where the results can be found.</param>
 		/// <returns>The words that were found embedded within the image.</returns>
-		private IEnumerable<string> GetOcrAnalysisResultFromAzure(string resultEndpoint)
+		private async Task<IEnumerable<string>> GetOcrAnalysisResultFromAzure(string resultEndpoint)
 		{
-			var output = new List<string>();
-
 			if (string.IsNullOrEmpty(resultEndpoint))
 			{
-				return output;
+				return null;
 			}
-
-			HttpWebResponse response = null;
 
 			try
 			{
-				var request = WebRequest.CreateHttp(resultEndpoint);
-				request.ContentType = "application/octet-stream";
-				request.Headers.Add("Ocp-Apim-Subscription-Key", ConnectionDetails.SubscriptionKey);
-
-
-				response = (HttpWebResponse)request.GetResponse();
-
-
-				if (response.StatusCode != HttpStatusCode.OK)
+				using (var client = new HttpClient())
 				{
-					throw new HttpRequestException("did not return success");
+					client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", ConnectionDetails.SubscriptionKey);
+					var response = await client.GetAsync(resultEndpoint);
+					if (response == null)
+					{
+						return null;
+					}
+
+					var json = await response.Content.ReadAsStringAsync();
+					var result = JsonConvert.DeserializeObject<TextOperationResult>(json);
+
+					if (result.Status != TextOperationStatusCodes.Succeeded)
+					{
+						return null;
+					}
+
+					return result.RecognitionResult.Lines.Select(line => line.Text);
 				}
-
-				// ReSharper disable once AssignNullToNotNullAttribute
-				var reader = new StreamReader(response.GetResponseStream());
-				var result = JsonConvert.DeserializeObject<TextOperationResult>(reader.ReadToEnd());
-				if (result.Status != TextOperationStatusCodes.Succeeded)
-				{
-					return output;
-				}
-
-				output.AddRange(result.RecognitionResult.Lines.Select(line => line.Text));
-
 			}
 			catch (HttpRequestException ex)
 			{
 				Console.WriteLine(ex);
 				throw;
 			}
-			finally
-			{
-				response?.Close();
-			}
-
-			return output;
 		}
 		#endregion
 
